@@ -18,7 +18,7 @@ class Filme:
 @dataclass
 class Indice:
     '''
-    Armazena a chave primária(ID do filme)
+    Armazena a chave primária (ID do filme)
     e o seu byte offset
     '''
     chave:int # ID do filme é a chave
@@ -27,6 +27,7 @@ class Indice:
 def redefinir_cabeca_leitura(arq:io.TextIOWrapper):
     '''
     Retorna a cabeça de leitura para o início do arquivo
+    pulando o cabeçalho
     '''
     arq.seek(4)
 
@@ -35,7 +36,7 @@ def importa_filmes() -> io.TextIOWrapper:
     Abre o arquivo de filmes e o retorna
     '''
     # Abre o arquivo no modo de leitura binário
-    arq:io.TextIOWrapper = open("filmes.dat","rb")
+    arq:io.TextIOWrapper = open("filmes.dat","rb+")
     # Move a cabeça de leitura para frente do cabeçalho
     redefinir_cabeca_leitura(arq)
     return arq
@@ -45,7 +46,7 @@ def cabeca_da_led(arq:io.TextIOWrapper) -> int:
     Retorna o byte offset da cabeça da LED.
     '''
     arq.seek(0)
-    cab = int.from_bytes(arq.read(4))
+    cab = int.from_bytes(arq.read(4),signed=True)
     redefinir_cabeca_leitura(arq)
     return cab
 
@@ -67,6 +68,8 @@ def le_filme(arq:io.TextIOWrapper) -> Filme:
 
     if(tam_reg):
         filme = arq.read(tam_reg).decode('utf8','strict')
+        if(filme[0] == b'*'): # Registro apagado!
+            return None
         campos = filme.split('|')
         return Filme(int(campos[0]), campos[1], campos[2], int(campos[3]), campos[4], int(campos[5]), campos[6],byte_offset)
     else:
@@ -82,7 +85,7 @@ def acessa_filme(arq:io.TextIOWrapper,offset:int) -> Filme:
 
     if(tam_reg):
         filme = arq.read(tam_reg).decode('utf8','strict')
-        if(filme[0] == "*"): # Se o registro está marcado como excluído:
+        if(filme[0] == b'*'): # Se o registro está marcado como excluído:
             print("Esse registro foi apagado.")
             return None
 
@@ -96,7 +99,7 @@ def busca_filme(arq:io.TextIOWrapper,id:int,indices:list[Indice]) -> Filme:
     Faz uma busca binária no 'arq' usando os 'indices' procurando pelo filme com o
     'id'. Retorna o filme encontrado ou None caso não seja encontrado.
     '''
-
+ 
     split = len(indices)//2 # Divide a lista ao meio
     
     # CASOS BASE ----------------------------------------------------------------
@@ -126,7 +129,7 @@ def lista_indices(arq:io.TextIOWrapper):
     contendo ID e byteoffset dos filmes.
     Essa lista já é ordenada por ID
     '''
-    filme = le_filme(arq)
+    filme:Filme = le_filme(arq)
 
     lista:list[Indice] = []
 
@@ -163,13 +166,66 @@ def conta_filmes(arq:io.TextIOWrapper):
         filme = le_filme(arq)
     return count
 
+def apaga_filme(arq:io.TextIOWrapper,filme:Filme) -> None:
+    '''
+    Apaga o registro do 'filme' do 'arq'
+    '''
+    arq.seek(filme.byte_offset+2)
+    arq.write(b'*')
+    adicionar_a_led(arq,filme.byte_offset)
+
+def adicionar_a_led(arq:io.TextIOWrapper,offset:int,tamanho:int):
+    '''
+    Adiciona o offset à LED
+
+    3
+
+    2 -> 5 -> -1
+
+    guardar o ponteiro que estava no 5
+    endereco = 5
+    buffer = -1
+    2 -> 3
+    faz o 3 apontar pro 5
+    2 -> 3 -> 5
+    faz 5 apontar pro buffer 
+    2 -> 3 -> 5 -> -1
+    '''
+    arq.seek(0)
+    endereco = int.from_bytes(arq.read(4),signed=True)
+    a_escrever = offset
+
+    while(endereco != -1):
+        arq.seek(endereco)
+        espaco_disponivel = int.from_bytes(arq.read(2),signed=True)
+        
+        if(espaco_disponivel > tamanho):
+            arq.read(1)
+            prox = int.from_bytes(arq.read(4),signed=True)
+            
+        arq.seek(arq.tell()-4)
+        arq.write(a_escrever)
+        arq.seek(endereco)
+        endereco = int.from_bytes(arq.read(4),signed=True)
+        a_escrever = endereco
+
+    # Escreve no final   
+    arq.seek(arq.tell()-4)
+    arq.write(a_escrever)
+
+    
 
 def main():
     arq = inicializar()
+    '''
     redefinir_cabeca_leitura(arq)
     lista = lista_indices(arq)
-    print(busca_filme(arq,113,lista))
-
+    filme = busca_filme(arq,113,lista)
+    print(filme)
+    filme = busca_filme(arq,113,lista)
+    print(filme)
+    print(conta_filmes(arq))
+    '''
 
 if __name__ == "__main__":
     main()
