@@ -42,24 +42,6 @@ def importa_filmes() -> io.TextIOWrapper:
     redefinir_cabeca_leitura(arq)
     return arq
 
-def cabeca_da_led(arq:io.TextIOWrapper) -> int:
-    '''
-    Retorna o byte offset da cabeça da LED.
-    '''
-    arq.seek(0)
-    cab = int.from_bytes(arq.read(4),signed=True)
-    redefinir_cabeca_leitura(arq)
-    return cab
-
-def definir_cabeca_led(arq:io.TextIOWrapper,nova_cabeca:int) -> None:
-    '''
-    Define uma nova cabeça para a LED
-    '''
-    arq.seek(0)
-    arq.write(nova_cabeca)
-    redefinir_cabeca_leitura(arq)
-
-
 def le_filme(arq:io.TextIOWrapper) -> Filme:
     '''
     Lê o pŕoximo filme da sequência do arquivo 'arq' e o retorna
@@ -68,15 +50,13 @@ def le_filme(arq:io.TextIOWrapper) -> Filme:
     tam_reg = int.from_bytes(arq.read(2))
 
     if(tam_reg):
-        coded = arq.read(tam_reg)
         try:
-            filme = coded.decode('utf8')
+            filme = arq.read(tam_reg).decode('utf8')
         except UnicodeDecodeError as e:
-            print("Caracter incompatível com UTF8. Registro apagado")
+            #Caracter incompatível com UTF8. Registro apagado
             return Filme(None,None,None,None,None,None,None,None,True)
-        #print("PRIMEIRO: "+filme[0])
+
         if(filme[0] == '*'): # Registro apagado!
-            print("APAGADO!!")
             return Filme(None,None,None,None,None,None,None,None,True)
         campos = filme.split('|')
         return Filme(int(campos[0]), campos[1], campos[2], int(campos[3]), campos[4], int(campos[5]), campos[6],byte_offset,False)
@@ -92,15 +72,13 @@ def acessa_filme(arq:io.TextIOWrapper,offset:int) -> Filme:
     tam_reg = int.from_bytes(arq.read(2))
 
     if(tam_reg):
-        coded = arq.read(tam_reg)
         try:
-            filme = coded.decode('utf8')
+            filme = arq.read(tam_reg).decode('utf8')
         except UnicodeDecodeError as e:
-            print("Caracter incompatível com UTF8. Registro apagado")
+            # Caracter incompatível com UTF8. Registro apagado
             return Filme(None,None,None,None,None,None,None,None,True)
         
         if(filme[0] == '*'): # Se o registro está marcado como excluído:
-            print("Esse registro foi apagado.")
             return Filme(None,None,None,None,None,None,None,None,True)
 
         campos = filme.split('|') # Separa os campos
@@ -113,7 +91,6 @@ def busca_filme(arq:io.TextIOWrapper,id:int,indices:list[Indice]) -> Filme:
     Faz uma busca binária no 'arq' usando os 'indices' procurando pelo filme com o
     'id'. Retorna o filme encontrado ou None caso não seja encontrado.
     '''
- 
     split = len(indices)//2 # Divide a lista ao meio
     
     # CASOS BASE ----------------------------------------------------------------
@@ -128,7 +105,6 @@ def busca_filme(arq:io.TextIOWrapper,id:int,indices:list[Indice]) -> Filme:
 
     return busca_filme(arq,id,novoIndices) # CASO RECURSIVO
 
-
 def inicializar() -> io.TextIOWrapper:
     '''
     Inicializa o arquivo
@@ -142,17 +118,18 @@ def lista_indices(arq:io.TextIOWrapper) -> list[Indice]:
     contendo ID e byteoffset dos filmes.
     Essa lista já é ordenada por ID
     '''
-    filme:Filme = le_filme(arq)
 
     lista:list[Indice] = []
-
+    filme = le_filme(arq)
+    
     while filme:
-        if(filme.apagado):
+        if len(lista) == 0:
+            if(not filme.apagado):
+                lista.append(Indice(filme.id,filme.byte_offset))
             filme = le_filme(arq)
             continue
-        # Primeiro elemento
-        if len(lista) == 0:
-            lista.append(Indice(filme.id,filme.byte_offset))
+
+        if(filme.apagado):
             filme = le_filme(arq)
             continue
 
@@ -169,19 +146,6 @@ def lista_indices(arq:io.TextIOWrapper) -> list[Indice]:
 
     return lista
         
-
-def conta_filmes(arq:io.TextIOWrapper):
-    '''
-    Retorna a quantidade de filmes no arquivo.
-    '''
-    redefinir_cabeca_leitura(arq) # Retornando ao início do arquivo
-    filme:Filme = le_filme(arq)
-    count = 0
-    while(filme):
-        count+=1
-        filme = le_filme(arq)
-    return count
-
 def apaga_filme(arq:io.TextIOWrapper,filme:Filme) -> None:
     '''
     Apaga o registro do 'filme' do 'arq'
@@ -194,21 +158,7 @@ def apaga_filme(arq:io.TextIOWrapper,filme:Filme) -> None:
 
 def adicionar_a_led(arq:io.TextIOWrapper,offset:int,tamanho:int):
     '''
-    Adiciona o offset à LED
-    
-    -> -1
-
-    56
-    32|DADOS DADOS -> 32*-1DOS DADOS
-    -> 56 -> -1
-
-    72
-    12|DADOS DADOS -> 12*103
-
-    ->72 -> 103 -> 56 -> -1
-
-    103
-    23|DADOS DADOS -> 32*56
+    Adiciona o 'offset' de um filme à LED de forma ordenada por 'tamanho'
     '''
     arq.seek(0)
     anter = 0
@@ -221,28 +171,15 @@ def adicionar_a_led(arq:io.TextIOWrapper,offset:int,tamanho:int):
         if(espaco_disponivel > tamanho):
             arq.seek(anter)
             arq.write(offset.to_bytes(4,signed=True))
-            # DEBUG
-            arq.seek(anter)
-            tam = int.from_bytes(arq.read(2))
-            reg = arq.read(tam)
-            print(tam,reg)
 
             arq.seek(offset+3)
             arq.write(endereco.to_bytes(4,signed=True))
-            #DEBUG
-            arq.seek(offset)
-            tam = int.from_bytes(arq.read(2))
-            reg = arq.read(tam)
-            print(tam,reg)
-            print(reg[1:5])
             return
         else:
             anter = endereco+3
             arq.read(1)
             endereco = int.from_bytes(arq.read(4),signed=True)
-            print(endereco)
             continue
-            #32*-1
     # Escreve no final   
     arq.seek(anter)
     arq.write(offset.to_bytes(4,signed=True))
@@ -251,6 +188,9 @@ def adicionar_a_led(arq:io.TextIOWrapper,offset:int,tamanho:int):
 
     
 def le_led(arq:io.TextIOWrapper):
+    '''
+    Exibe a LED
+    '''
     arq.seek(0)
     endereco = int.from_bytes(arq.read(4),signed=True)
     lista = ""
@@ -268,9 +208,7 @@ def main():
     arq = inicializar()
     redefinir_cabeca_leitura(arq)
     lista = lista_indices(arq)
-    print(len(lista))
     filme = busca_filme(arq,lista[0].chave,lista)
-    print(filme)
     
     apaga_filme(arq,filme)
     filme = busca_filme(arq,lista[0].chave,lista)
