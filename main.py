@@ -204,6 +204,20 @@ def le_led(arq:io.TextIOWrapper):
     lista += "-1 #"
     print(lista)
 
+def compact():
+    arq:io.TextIOWrapper = open("filmes.dat", "rb+")
+    if arq:
+        cont_b = arq.read()
+        cont_str = cont_b.decode(decoding)
+        cont_str_no_s = cont_str.replace(" ", "")
+        new_b = cont_str_no_s.encode(encoding)
+        arq.seek(0)
+        arq.write(new_b)
+        arq.truncate()
+        return True
+    else:
+        return False
+
 def main():
     arq = inicializar()
     redefinir_cabeca_leitura(arq)
