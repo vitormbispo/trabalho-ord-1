@@ -207,12 +207,10 @@ def le_led(arq:io.TextIOWrapper):
 def compact():
     arq:io.TextIOWrapper = open("filmes.dat", "rb+")
     if arq:
-        cont_b = arq.read()
-        cont_str = cont_b.decode(decoding)
-        cont_str_no_s = cont_str.replace(" ", "")
-        new_b = cont_str_no_s.encode(encoding)
+        c = arq.read()
+        new_c = c.replace(b"\0", b"")
         arq.seek(0)
-        arq.write(new_b)
+        arq.write(new_c)
         arq.truncate()
         return True
     else:
