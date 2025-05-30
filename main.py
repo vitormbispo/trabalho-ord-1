@@ -215,16 +215,42 @@ def compact():
         return True
     else:
         return False
+    
+def executa_operacoes(arq:io.TextIOBase,indices:list[Indice]):
+    ops:io.TextIOBase = open("operacoes.txt","r")
 
+    operacao:str = ops.readline()
+    while operacao:
+        args = operacao.split(" ")
+        op = args[0]
+        if op == "b":
+            filme:Filme = busca_filme(arq,int(args[1]),indices)
+            if filme != None:
+                arq.seek(filme.byte_offset)
+                tam = int.from_bytes(arq.read(2))
+                print(arq.read(tam).decode())
+        elif op == "r":
+            filme:Filme = busca_filme(arq,int(args[1]),indices)
+            if filme != None:
+                apaga_filme(arq,filme)
+                print("Filme apagado com sucesso")
+        operacao = ops.readline()
+    ops.close()
+
+    
 def main():
     arq = inicializar()
+    
     redefinir_cabeca_leitura(arq)
     lista = lista_indices(arq)
     filme = busca_filme(arq,lista[0].chave,lista)
-    
+    '''
     apaga_filme(arq,filme)
     filme = busca_filme(arq,lista[0].chave,lista)
     le_led(arq)
+    '''
+    executa_operacoes(arq,lista)
+    arq.close()
 
 if __name__ == "__main__":
     main()
