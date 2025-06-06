@@ -204,53 +204,66 @@ def le_led(arq:io.TextIOWrapper):
     lista += "-1 #"
     print(lista)
 
-def compact():
-    arq:io.TextIOWrapper = open("filmes.dat", "rb+")
+def compact(arq:io.TextIOWrapper):
     if arq:
         c = arq.read()
         new_c = c.replace(b"\0", b"")
         arq.seek(0)
         arq.write(new_c)
-        arq.truncate()
+        print("Compactado")
         return True
     else:
         return False
     
 def executa_operacoes(arq:io.TextIOBase,indices:list[Indice]):
     ops:io.TextIOBase = open("operacoes.txt","r")
-
     operacao:str = ops.readline()
+    log:io.TextIOBase = open("log_operações.txt","w+")
+
     while operacao:
         args = operacao.split(" ")
         op = args[0]
-        if op == "b":
-            filme:Filme = busca_filme(arq,int(args[1]),indices)
-            if filme != None:
-                arq.seek(filme.byte_offset)
-                tam = int.from_bytes(arq.read(2))
-                print(arq.read(tam).decode())
-        elif op == "r":
-            filme:Filme = busca_filme(arq,int(args[1]),indices)
-            if filme != None:
-                apaga_filme(arq,filme)
-                print("Filme apagado com sucesso")
+        match op:
+            case "b": # Busca
+                chave = args[1]
+                log.write(f"Busca pelo registro de chave \"{chave.strip()}\"\n")
+                filme:Filme = busca_filme(arq,int(chave),indices)
+                if filme != None and not filme.apagado:
+                    arq.seek(filme.byte_offset)
+                    tam = int.from_bytes(arq.read(2))
+                    log.write(f"{filme_para_registro(filme)} ({tam} bytes) \nLocal: offset = {filme.byte_offset} bytes ({hex(filme.byte_offset)})\n\n")
+                else:
+                    log.write(f"Erro: registro não encontrado!\n\n")
+            case "r": # Remoção
+                chave = args[1]
+                log.write(f"Remoção do registro de chave \"{chave.strip()}\"\n")
+                filme:Filme = busca_filme(arq,int(chave),indices)
+                if filme != None and not filme.apagado:
+                    arq.seek(filme.byte_offset)
+                    tam = int.from_bytes(arq.read(2))
+                    apaga_filme(arq,filme)
+                    log.write(f"\nRegistro removido! ({tam} bytes)\nLocal: offset = {filme.byte_offset} ({hex(filme.byte_offset)})")
+                else:
+                    log.write(f"Erro: registro não encontrado!\n\n")
         operacao = ops.readline()
+
     ops.close()
 
-    
+def filme_para_registro(filme:Filme):
+    '''
+    Converte um objeto do tipo 'Filme' para uma string
+    formatada como um registro
+    '''
+    return f"{filme.id}|{filme.titulo}|{filme.diretor}|{filme.titulo}|{filme.genero}|{filme.duracao}|{filme.elenco}"
 def main():
     arq = inicializar()
     
     redefinir_cabeca_leitura(arq)
     lista = lista_indices(arq)
-    filme = busca_filme(arq,lista[0].chave,lista)
-    '''
-    apaga_filme(arq,filme)
-    filme = busca_filme(arq,lista[0].chave,lista)
-    le_led(arq)
-    '''
+
     executa_operacoes(arq,lista)
     arq.close()
+
 
 if __name__ == "__main__":
     main()
