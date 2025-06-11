@@ -368,6 +368,8 @@ def main():
     op = args[2]
     arq = open(caminho_arq,"rb+")
 
+   
+
     match op:
         case "-e":
             assert len(args) == 4, "Argumentos inválidos.\n Uso: [nome-arquivo] -e [arquivo-operacoes]"
