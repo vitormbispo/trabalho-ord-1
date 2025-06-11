@@ -214,16 +214,28 @@ def le_led(arq:io.TextIOWrapper):
     lista += "-1 #"
     print(lista)
 
-def compact(arq:io.TextIOWrapper):
-    if arq:
-        c = arq.read()
-        new_c = c.replace(b"\0", b"")
-        arq.seek(0)
-        arq.write(new_c)
-        print("Compactado")
-        return True
-    else:
-        return False
+
+def compactar(arq:io.TextIOWrapper):
+    '''
+    Reescreve um novo arquivo compactado apenas com os registros válidos.
+    '''
+    le_led(arq)
+    compactado = open("filmes_compactado.dat","wb")
+    redefinir_cabeca_leitura(arq)
+    filme = le_filme(arq)
+    
+    compactado.write(int.to_bytes(-1,4,signed=True)) # Escreve a cabeça da LED
+    while(filme):
+        if filme.apagado: 
+            filme = le_filme(arq)
+            continue
+        reg = filme_para_registro(filme).encode()
+        tam = len(reg).to_bytes(2)
+        compactado.write(tam)
+        compactado.write(reg)
+        filme = le_filme(arq)
+    compactado.close()
+    
     
 def executa_operacoes(arq:io.TextIOBase,indices:list[Indice]):
     ops:io.TextIOBase = open("operacoes.txt","r")
@@ -337,6 +349,8 @@ def main():
     arq = open("filmes copy.dat","rb+")
     lista = lista_indices(arq)
     executa_operacoes(arq,lista)
+    compactar(arq)
+    
     arq.close()
 
 
