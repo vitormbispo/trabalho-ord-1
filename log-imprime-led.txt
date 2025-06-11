@@ -1,2 +1,3 @@
-LED -> [offset: 3310, tam: 92] -> [offset: 6229, tam: 102] -> [offset: 6613, tam: 110] -> [offset: 2748, tam: 110] -> [offset: 9065, tam: 112] -> [offset: 571, tam: 119] -> [offset: 6010, tam: 120] -> [offset: 8605, tam: 124] -> [offset: 10553, tam: 126] -> [offset: 11459, tam: 128] -> [offset: 5857, tam: 151] -> fim
-Total: 11 espaços disponíveis.A LED foi impressa com sucesso!
+LED -> [offset: 5260, tam: 109] -> [offset: 2748, tam: 110] -> [offset: 11929, tam: 127] -> fim
+Total: 3 espaços disponíveis.
+A LED foi impressa com sucesso!

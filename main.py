@@ -222,6 +222,30 @@ def imprime_led(arq:io.TextIOWrapper):
     log.write("A LED foi impressa com sucesso!")
     log.close()
 
+def imprime_led(arq:io.TextIOWrapper):
+    '''
+    Imprime a LED em um novo arquivo de texto
+    '''
+    log:io.TextIOWrapper = open("log-imprime-led.txt","w")
+    log.write("LED -> ")
+
+    arq.seek(0)
+    endereco = int.from_bytes(arq.read(4),signed=True)
+    espacos = 0
+    while(endereco != -1):
+        
+        arq.seek(endereco)
+        tam = int.from_bytes(arq.read(2))
+        arq.read(1)
+        log.write(f"[offset: {endereco}, tam: {tam}] -> ")
+        espacos+=1
+        endereco = int.from_bytes(arq.read(4),signed=True)
+    log.write("fim\n")
+    log.write(f"Total: {espacos} espaços disponíveis.\n")
+    log.write("A LED foi impressa com sucesso!")
+    log.close()
+
+
 
 def compactar(arq:io.TextIOWrapper):
     '''
@@ -341,15 +365,21 @@ def filme_para_registro(filme:Filme):
     return f"{filme.id}|{filme.titulo}|{filme.diretor}|{filme.ano}|{filme.genero}|{filme.duracao}|{filme.elenco}"
 
 def main():
-    args:list[string] = sys.argv
-    op = args[1]
-    arq = open("filmes copy 2.dat","rb+")
+    args:list[str] = sys.argv
+    assert len(args) >= 3, "Argumentos inválidos.\n Uso do programa: [nome-arquivo] [-e, -c, -p]"
+    caminho_arq = args[1]
+    op = args[2]
+    arq = open(caminho_arq,"rb+")
+
+   
+
     match op:
         case "-e":
+            assert len(args) == 4, "Argumentos inválidos.\n Uso: [nome-arquivo] -e [arquivo-operacoes]"
             lista = lista_indices(arq)
-            executa_operacoes(arq,args[2],lista)
+            executa_operacoes(arq,args[3],lista)
         case "-c":
-            compactar()
+            compactar(arq)
         case "-p":
             imprime_led(arq)
     arq.close()
