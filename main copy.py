@@ -45,8 +45,7 @@ def le_filme(arq:io.TextIOWrapper) -> Filme:
     Lê o pŕoximo filme da sequência do arquivo 'arq' e o retorna
     ''' 
     byte_offset = arq.tell()
-    read_bytes = arq.read(2)
-    tam_reg = int.from_bytes(read_bytes)
+    tam_reg = int.from_bytes(arq.read(2))
 
     if(tam_reg):
         try:
@@ -117,7 +116,6 @@ def lista_indices(arq:io.TextIOWrapper) -> list[Indice]:
     '''
 
     lista:list[Indice] = []
-    redefinir_cabeca_leitura(arq)
     filme = le_filme(arq)
     
     while filme:
@@ -228,14 +226,14 @@ def compact(arq:io.TextIOWrapper):
 def executa_operacoes(arq:io.TextIOBase,indices:list[Indice]):
     ops:io.TextIOBase = open("operacoes.txt","r")
     operacao:str = ops.readline()
-    log:io.TextIOBase = open("log_operacoes.txt","w+")
+    log:io.TextIOBase = open("log_operações.txt","w+")
 
     while operacao:
-        op = operacao[0]
-        arg = operacao[2:]
+        args = operacao.split(" ")
+        op = args[0]
         match op:
             case "b": # Busca
-                chave = arg
+                chave = args[1]
                 log.write(f"Busca pelo registro de chave \"{chave.strip()}\"\n")
                 filme:Filme = busca_filme(arq,int(chave),indices)
                 if filme != None and not filme.apagado:
@@ -245,100 +243,37 @@ def executa_operacoes(arq:io.TextIOBase,indices:list[Indice]):
                 else:
                     log.write(f"Erro: registro não encontrado!\n\n")
             case "r": # Remoção
-                chave = arg
+                chave = args[1]
                 log.write(f"Remoção do registro de chave \"{chave.strip()}\"\n")
                 filme:Filme = busca_filme(arq,int(chave),indices)
                 if filme != None and not filme.apagado:
                     arq.seek(filme.byte_offset)
                     tam = int.from_bytes(arq.read(2))
                     apaga_filme(arq,filme)
-                    indices = lista_indices(arq)
-                    log.write(f"Registro removido! ({tam} bytes)\nLocal: offset = {filme.byte_offset} bytes ({hex(filme.byte_offset)})\n\n")
-                    le_led(arq)
+                    log.write(f"\nRegistro removido! ({tam} bytes)\nLocal: offset = {filme.byte_offset} ({hex(filme.byte_offset)})")
                 else:
                     log.write(f"Erro: registro não encontrado!\n\n")
-            case "i": # Inserção
-                novo_filme = arg
-                local, eof = inserir_filme(arq,novo_filme)
-                indices = lista_indices(arq)
-                log.write(f"Inserção do registro de chave \"{novo_filme[0:2]}\" ({len(novo_filme.encode())} bytes)\n")
-                if(eof):
-                    log.write("Local: fim do arquivo\n\n")
-                else:
-                    log.write(f"Local: offset = {local} bytes ({hex(local)})\n\n")
-                
         operacao = ops.readline()
-    log.write(f"As operações do arquivo operacoes.txt foram executadas com sucesso!")
     log.close()
     ops.close()
-
-def remover_da_led(arq: io.TextIOWrapper,offset:int):
-    arq.seek(0)
-    anter = 0
-    prox = int.from_bytes(arq.read(4),signed=True)
-
-    while(prox != -1 and prox != offset):
-        anter = prox
-        arq.seek(prox+3)
-        prox = int.from_bytes(arq.read(4),signed=True)
-
-    if(prox == -1):
-        print("Erro: offset não pertence à LED.")
-        return False
-    
-    arq.seek(prox)
-    print(arq.read(3))
-    prox = int.from_bytes(arq.read(4),signed=True)
-    
-    # CASO PATOLÓGICO: anter é a cabeça da LED. Não se pula os 3 bytes.
-    arq.seek(anter+3 if anter != 0 else anter)
-    arq.write(prox.to_bytes(4,signed=True))
-    return True
-
-def inserir_filme(arq: io.TextIOWrapper, registro_str: str) -> int:
-    registro = registro_str.encode('utf-8')
-    tam = len(registro)
-    tam_bytes = tam.to_bytes(2, 'big')
-
-    offset = encontrar_melhor_espaço(arq,tam)
-    if offset == None: # Sem espaço na LED, inserindo no fim do arquivo:
-        arq.read()
-        offset_inserido = arq.tell()
-        arq.write(tam_bytes)
-        arq.write(registro)
-        return offset_inserido, True # Retorna o offset e se foi no fim do arquivo
-    else:
-        remover_da_led(arq,offset)
-        arq.seek(offset)
-        tamanho_anterior = int.from_bytes(arq.read(2))
-        arq.seek(offset+2)
-        arq.write(registro)
-        arq.write(b'\0'*(tamanho_anterior-tam))
-        print("REMOVIDO DA LED: ")
-        le_led(arq)
-        return offset, False
 
 def filme_para_registro(filme:Filme):
     '''
     Converte um objeto do tipo 'Filme' para uma string
     formatada como um registro
     '''
-    return f"{filme.id}|{filme.titulo}|{filme.diretor}|{filme.ano}|{filme.genero}|{filme.duracao}|{filme.elenco}"
+    return f"{filme.id}|{filme.titulo}|{filme.diretor}|{filme.titulo}|{filme.genero}|{filme.duracao}|{filme.elenco}"
 def main():
-    '''
     arq = inicializar()
     
     redefinir_cabeca_leitura(arq)
     lista = lista_indices(arq)
-    filme = busca_filme(arq,45,lista)
-    print(filme_para_registro(filme))
+    filme = busca_filme(arq,lista[0].chave,lista)
+    apaga_filme(arq,filme)
+    le_led(arq)
+    print(encontrar_melhor_espaço(arq,93))
+    #executa_operacoes(arq,lista)
     arq.close()
-    '''
-    arq = open("filmes copy.dat","rb+")
-    lista = lista_indices(arq)
-    executa_operacoes(arq,lista)
-    arq.close()
-
 
 
 if __name__ == "__main__":
