@@ -10,43 +10,37 @@ Busca pelo registro de chave "221"
 Erro: registro não encontrado!
 
 Inserção do registro de chave "12" (127 bytes)
-Local: fim do arquivo
+Local: offset = 11929 bytes (0x2e99)
 
 Remoção do registro de chave "85"
-Registro removido! (131 bytes)
-Local: offset = 344 bytes (0x158)
+Erro: registro não encontrado!
 
 Remoção do registro de chave "20"
-Registro removido! (93 bytes)
-Local: offset = 9976 bytes (0x26f8)
+Erro: registro não encontrado!
 
 Remoção do registro de chave "311"
 Erro: registro não encontrado!
 
 Remoção do registro de chave "123"
-Registro removido! (106 bytes)
-Local: offset = 7822 bytes (0x1e8e)
+Erro: registro não encontrado!
 
 Remoção do registro de chave "7"
-Registro removido! (110 bytes)
-Local: offset = 2748 bytes (0xabc)
+Erro: registro não encontrado!
 
 Remoção do registro de chave "114"
-Registro removido! (135 bytes)
-Local: offset = 2611 bytes (0xa33)
+Erro: registro não encontrado!
 
 Inserção do registro de chave "72" (127 bytes)
-Local: offset = 344 bytes (0x158)
+Local: fim do arquivo
 
 Inserção do registro de chave "15" (78 bytes)
-Local: offset = 9976 bytes (0x26f8)
+Local: offset = 5260 bytes (0x148c)
 
 Inserção do registro de chave "47" (135 bytes)
-Local: offset = 2611 bytes (0xa33)
+Local: fim do arquivo
 
 Remoção do registro de chave "160"
-Registro removido! (109 bytes)
-Local: offset = 5260 bytes (0x148c)
+Erro: registro não encontrado!
 
 Busca pelo registro de chave "150"
 150|O Tigre e o Dragão|Ang Lee|2000|Ação, Aventura, Fantasia|120|Chow Yun (93 bytes) 
@@ -67,6 +61,6 @@ Inserção do registro de chave "44" (142 bytes)
 Local: fim do arquivo
 
 Inserção do registro de chave "12" (104 bytes)
-Local: offset = 7822 bytes (0x1e8e)
+Local: offset = 2748 bytes (0xabc)
 
 As operações do arquivo operacoes.txt foram executadas com sucesso!

@@ -1,4 +1,5 @@
 import io
+import sys
 from dataclasses import dataclass
 
 @dataclass
@@ -197,29 +198,35 @@ def encontrar_melhor_espaço(arq:io.TextIOWrapper,tam:int):
             endereco = int.from_bytes(arq.read(4),signed=True)
     return None
     
-def le_led(arq:io.TextIOWrapper):
+def imprime_led(arq:io.TextIOWrapper):
     '''
-    Exibe a LED
+    Imprime a LED em um novo arquivo de texto
     '''
+    log:io.TextIOWrapper = open("log-imprime-led.txt","w")
+    log.write("LED -> ")
+
     arq.seek(0)
     endereco = int.from_bytes(arq.read(4),signed=True)
     lista = ""
+    espacos = 0
     while(endereco != -1):
         
         arq.seek(endereco)
         tam = int.from_bytes(arq.read(2))
         arq.read(1)
-        lista += f"{endereco} ({tam} bytes) -> "
+        log.write(f"[offset: {endereco}, tam: {tam}] -> ")
+        espacos+=1
         endereco = int.from_bytes(arq.read(4),signed=True)
-    lista += "-1 #"
-    print(lista)
+    log.write("fim\n")
+    log.write(f"Total: {espacos} espaços disponíveis.")
+    log.write("A LED foi impressa com sucesso!")
+    log.close()
 
 
 def compactar(arq:io.TextIOWrapper):
     '''
     Reescreve um novo arquivo compactado apenas com os registros válidos.
     '''
-    le_led(arq)
     compactado = open("filmes_compactado.dat","wb")
     redefinir_cabeca_leitura(arq)
     filme = le_filme(arq)
@@ -237,8 +244,8 @@ def compactar(arq:io.TextIOWrapper):
     compactado.close()
     
     
-def executa_operacoes(arq:io.TextIOBase,indices:list[Indice]):
-    ops:io.TextIOBase = open("operacoes.txt","r")
+def executa_operacoes(arq:io.TextIOBase,arq_ops:str,indices:list[Indice]):
+    ops:io.TextIOBase = open(arq_ops,"r")
     operacao:str = ops.readline()
     log:io.TextIOBase = open("log_operacoes.txt","w+")
 
@@ -266,7 +273,6 @@ def executa_operacoes(arq:io.TextIOBase,indices:list[Indice]):
                     apaga_filme(arq,filme)
                     indices = lista_indices(arq)
                     log.write(f"Registro removido! ({tam} bytes)\nLocal: offset = {filme.byte_offset} bytes ({hex(filme.byte_offset)})\n\n")
-                    le_led(arq)
                 else:
                     log.write(f"Erro: registro não encontrado!\n\n")
             case "i": # Inserção
@@ -299,7 +305,6 @@ def remover_da_led(arq: io.TextIOWrapper,offset:int):
         return False
     
     arq.seek(prox)
-    print(arq.read(3))
     prox = int.from_bytes(arq.read(4),signed=True)
     
     # CASO PATOLÓGICO: anter é a cabeça da LED. Não se pula os 3 bytes.
@@ -326,8 +331,6 @@ def inserir_filme(arq: io.TextIOWrapper, registro_str: str) -> int:
         arq.seek(offset+2)
         arq.write(registro)
         arq.write(b'\0'*(tamanho_anterior-tam))
-        print("REMOVIDO DA LED: ")
-        le_led(arq)
         return offset, False
 
 def filme_para_registro(filme:Filme):
@@ -336,24 +339,20 @@ def filme_para_registro(filme:Filme):
     formatada como um registro
     '''
     return f"{filme.id}|{filme.titulo}|{filme.diretor}|{filme.ano}|{filme.genero}|{filme.duracao}|{filme.elenco}"
+
 def main():
-    '''
-    arq = inicializar()
-    
-    redefinir_cabeca_leitura(arq)
-    lista = lista_indices(arq)
-    filme = busca_filme(arq,45,lista)
-    print(filme_para_registro(filme))
+    args:list[string] = sys.argv
+    op = args[1]
+    arq = open("filmes copy 2.dat","rb+")
+    match op:
+        case "-e":
+            lista = lista_indices(arq)
+            executa_operacoes(arq,args[2],lista)
+        case "-c":
+            compactar()
+        case "-p":
+            imprime_led(arq)
     arq.close()
-    '''
-    arq = open("filmes copy.dat","rb+")
-    lista = lista_indices(arq)
-    executa_operacoes(arq,lista)
-    compactar(arq)
-    
-    arq.close()
-
-
 
 if __name__ == "__main__":
     main()
