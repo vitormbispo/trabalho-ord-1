@@ -180,7 +180,7 @@ def imprime_led(arq:io.TextIOWrapper):
     '''
     Imprime a LED em um novo arquivo de texto
     '''
-    log:io.TextIOWrapper = open("log-imprime-led.txt","w")
+    log:io.TextIOWrapper = open("log-imprime-led.txt","w",encoding="utf-8")
     log.write("LED -> ")
 
     arq.seek(0)
@@ -220,9 +220,9 @@ def compactar(arq:io.TextIOWrapper):
     
     
 def executa_operacoes(arq:io.TextIOBase,arq_ops:str,indices:list[Indice]):
-    ops:io.TextIOBase = open(arq_ops,"r")
+    ops:io.TextIOBase = open(arq_ops,"r",encoding="utf-8")
     operacao:str = ops.readline()
-    log:io.TextIOBase = open("log_operacoes.txt","w+")
+    log:io.TextIOBase = open("log_operacoes.txt","w+",encoding="utf-8")
 
     while operacao:
         op = operacao[0]
@@ -253,7 +253,7 @@ def executa_operacoes(arq:io.TextIOBase,arq_ops:str,indices:list[Indice]):
                     log.write(f"Erro: registro não encontrado!\n\n")
             case "i": # Inserção
                 novo_filme = arg
-                log.write(f"Inserção do registro de chave \"{novo_filme.split("|")[0]}\" ({len(novo_filme.encode())} bytes)\n")
+                log.write(f"Inserção do registro de chave \"{novo_filme.split('|')[0]}\" ({len(novo_filme.encode())} bytes)\n")
                 local, eof = inserir_filme(arq,novo_filme,indices)
                 
                 if local == -1: # Caracter inválido
@@ -308,10 +308,10 @@ def inserir_filme(arq: io.TextIOWrapper, registro_str: str,indices:list[Indice])
     Insere um novo registro no arquivo pela estratégia de best-fit.
     '''
     if "*" in registro_str: return -1, False # Caracter inválido no registro
-    if validar_id(arq,int(registro_str.split("|")[0]),indices): return -2,False
+    if validar_id(arq,int(registro_str.split("|")[0].strip()),indices): return -2,False
    
 
-    registro = registro_str.encode('utf-8')
+    registro = registro_str.encode('utf-8').strip()
     tam = len(registro)
     tam_bytes = tam.to_bytes(2, 'big')
 

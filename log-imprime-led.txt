@@ -1,3 +1,0 @@
-LED -> fim
-Total: 0 espaços disponíveis.
-A LED foi impressa com sucesso!

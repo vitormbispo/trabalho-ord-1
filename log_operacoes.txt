@@ -1,4 +1,0 @@
-Inserção do registro de chave "666" (105 bytes)
-Erro: Caracter '*' não é permitido!
-
-As operações do arquivo opercoes2.txt foram executadas com sucesso!

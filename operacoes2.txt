@@ -1,0 +1,8 @@
+i 300|Interestelar|Christopher Nolan|2014|Aventura, Drama, Ficção Científica|169|Matthew McConaughey, Anne Hathaway, Jessica Chastain|
+b 300
+r 300
+i 88|O Grande Truque|Christopher Nolan|2006|Drama, Mistério, Suspense|130|Christian Bale, Hugh Jackman, Scarlett Johansson|
+b 88
+r 113
+i 113|Star Wars: Uma Nova Esperança|George Lucas|1977|Aventura, Fantasia, Ficção Científica|121|Mark Hamill, Harrison Ford, Carrie Fisher|
+b 113

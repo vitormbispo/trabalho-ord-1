@@ -11,7 +11,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": ["filmes copy.dat","-e","opercoes2.txt"]
+            "args": ["filmes copy.dat","-e","operacoes.txt"]
         }
     ]
 }
