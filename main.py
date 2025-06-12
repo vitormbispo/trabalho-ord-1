@@ -81,6 +81,17 @@ def busca_filme(arq:io.TextIOWrapper,id:int,indices:list[Indice]) -> Filme:
     Faz uma busca binária no 'arq' usando os 'indices' procurando pelo filme com o
     'id'. Retorna o filme encontrado ou None caso não seja encontrado.
     '''
+    inicio = 0
+    fim = len(indices)-1
+
+    while(inicio <= fim):
+        meio = (inicio+fim)//2
+        if indices[meio].chave == id: return acessa_filme(arq,indices[meio].byte_offset)
+        if indices[meio].chave < id: inicio = meio+1
+        else: fim = meio-1
+    return None
+    
+    
     split = len(indices)//2 # Divide a lista ao meio
     
     # CASOS BASE ----------------------------------------------------------------
@@ -239,7 +250,8 @@ def executa_operacoes(arq:io.TextIOBase,arq_ops:str,indices:list[Indice]):
                 if filme != None and not filme.apagado:
                     arq.seek(filme.byte_offset)
                     tam = int.from_bytes(arq.read(2))
-                    log.write(f"{filme_para_registro(filme)} ({tam} bytes) \nLocal: offset = {filme.byte_offset} bytes ({hex(filme.byte_offset)})\n\n")
+                    reg = filme_para_registro(filme)
+                    log.write(f"{reg} ({len(reg.encode())} bytes) \nLocal: offset = {filme.byte_offset} bytes ({hex(filme.byte_offset)})\n\n")
                 else:
                     log.write(f"Erro: registro não encontrado!\n\n")
             case "r": # Remoção
