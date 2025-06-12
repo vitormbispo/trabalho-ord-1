@@ -33,14 +33,6 @@ def redefinir_cabeca_leitura(arq:io.TextIOWrapper):
     '''
     arq.seek(4)
 
-def importa_filmes() -> io.TextIOWrapper:
-    '''
-    Abre o arquivo de filmes e o retorna
-    '''
-    arq:io.TextIOWrapper = open("filmes copy.dat","rb+")
-    redefinir_cabeca_leitura(arq)
-    return arq
-
 def le_filme(arq:io.TextIOWrapper) -> Filme:
     '''
     Lê o pŕoximo filme da sequência do arquivo 'arq' e o retorna
@@ -60,7 +52,7 @@ def le_filme(arq:io.TextIOWrapper) -> Filme:
         campos = filme.split('|')
         return Filme(int(campos[0]), campos[1], campos[2], int(campos[3]), campos[4], int(campos[5]), campos[6],byte_offset,False)
     else:
-        return None
+        return None # Fim do arquivo
 
 def acessa_filme(arq:io.TextIOWrapper,offset:int) -> Filme:
     '''
@@ -103,18 +95,10 @@ def busca_filme(arq:io.TextIOWrapper,id:int,indices:list[Indice]) -> Filme:
 
     return busca_filme(arq,id,novoIndices) # CASO RECURSIVO
 
-def inicializar() -> io.TextIOWrapper:
-    '''
-    Inicializa o arquivo
-    '''
-    arq = importa_filmes()
-    return arq
-
 def lista_indices(arq:io.TextIOWrapper) -> list[Indice]:
     '''
-    Retorna uma lista da classe Indice
-    contendo ID e byteoffset dos filmes.
-    Essa lista já é ordenada por ID
+    Retorna uma lista da classe Indice contendo ID e byteoffset dos filmes.
+    Essa lista já é ordenada por ID.
     '''
 
     lista:list[Indice] = []
@@ -122,13 +106,13 @@ def lista_indices(arq:io.TextIOWrapper) -> list[Indice]:
     filme = le_filme(arq)
     
     while filme:
-        if len(lista) == 0:
-            if(not filme.apagado):
-                lista.append(Indice(filme.id,filme.byte_offset))
+        if(filme.apagado):
             filme = le_filme(arq)
             continue
 
-        if(filme.apagado):
+        if len(lista) == 0: # Primeiro elemento
+            if(not filme.apagado):
+                lista.append(Indice(filme.id,filme.byte_offset))
             filme = le_filme(arq)
             continue
 
@@ -162,27 +146,23 @@ def adicionar_a_led(arq:io.TextIOWrapper,offset:int,tamanho:int):
     arq.seek(0)
     anter = 0
     endereco = int.from_bytes(arq.read(4),signed=True)
-
-    while(endereco != -1):
+    encontrado = False
+    while(endereco != -1 and not encontrado):
         arq.seek(endereco)
         espaco_disponivel = int.from_bytes(arq.read(2),signed=True)
         
         if(espaco_disponivel > tamanho):
-            arq.seek(anter)
-            arq.write(offset.to_bytes(4,signed=True))
-
-            arq.seek(offset+3)
-            arq.write(endereco.to_bytes(4,signed=True))
-            return
+            encontrado = True
         else:
             anter = endereco+3
-            arq.read(1)
+            arq.read(1) # Pula o caracter de marcação
             endereco = int.from_bytes(arq.read(4),signed=True)
             continue
-    # Escreve no final   
+
+    # Escreve
     arq.seek(anter)
     arq.write(offset.to_bytes(4,signed=True))
-    arq.seek(offset+3)
+    arq.seek(offset+3) # Pula o tamanho e a marcação
     arq.write(endereco.to_bytes(4,signed=True))
 
 def encontrar_melhor_espaço(arq:io.TextIOWrapper,tam:int):
@@ -194,27 +174,10 @@ def encontrar_melhor_espaço(arq:io.TextIOWrapper,tam:int):
         if espaco >= tam:
             return endereco
         else:
-            arq.read(1)
+            arq.read(1) # Pula a marcação
             endereco = int.from_bytes(arq.read(4),signed=True)
     return None
     
-def le_led(arq:io.TextIOWrapper):
-    '''
-    Exibe a LED
-    '''
-    arq.seek(0)
-    endereco = int.from_bytes(arq.read(4),signed=True)
-    lista = ""
-    while(endereco != -1):
-        
-        arq.seek(endereco)
-        tam = int.from_bytes(arq.read(2))
-        arq.read(1)
-        lista += f"{endereco} ({tam} bytes) -> "
-        endereco = int.from_bytes(arq.read(4),signed=True)
-    lista += "-1 #"
-    print(lista)
-
 def imprime_led(arq:io.TextIOWrapper):
     '''
     Imprime a LED em um novo arquivo de texto
@@ -226,7 +189,6 @@ def imprime_led(arq:io.TextIOWrapper):
     endereco = int.from_bytes(arq.read(4),signed=True)
     espacos = 0
     while(endereco != -1):
-        
         arq.seek(endereco)
         tam = int.from_bytes(arq.read(2))
         arq.read(1)
@@ -244,7 +206,6 @@ def compactar(arq:io.TextIOWrapper):
     '''
     Reescreve um novo arquivo compactado apenas com os registros válidos.
     '''
-    le_led(arq)
     compactado = open("filmes_compactado.dat","wb")
     redefinir_cabeca_leitura(arq)
     filme = le_filme(arq)
@@ -291,18 +252,22 @@ def executa_operacoes(arq:io.TextIOBase,arq_ops:str,indices:list[Indice]):
                     apaga_filme(arq,filme)
                     indices = lista_indices(arq)
                     log.write(f"Registro removido! ({tam} bytes)\nLocal: offset = {filme.byte_offset} bytes ({hex(filme.byte_offset)})\n\n")
-                    le_led(arq)
                 else:
                     log.write(f"Erro: registro não encontrado!\n\n")
             case "i": # Inserção
                 novo_filme = arg
-                local, eof = inserir_filme(arq,novo_filme)
-                indices = lista_indices(arq)
-                log.write(f"Inserção do registro de chave \"{novo_filme[0:2]}\" ({len(novo_filme.encode())} bytes)\n")
-                if(eof):
-                    log.write("Local: fim do arquivo\n\n")
+                log.write(f"Inserção do registro de chave \"{novo_filme.split("|")[0]}\" ({len(novo_filme.encode())} bytes)\n")
+                local, eof = inserir_filme(arq,novo_filme,indices)
+                
+                if local == -1: # ID repetido
+                    log.write("Erro: ID já existe!\n\n")
                 else:
-                    log.write(f"Local: offset = {local} bytes ({hex(local)})\n\n")
+                    indices = lista_indices(arq)
+                
+                    if(eof):
+                        log.write("Local: fim do arquivo\n\n")
+                    else:
+                        log.write(f"Local: offset = {local} bytes ({hex(local)})\n\n")
                 
         operacao = ops.readline()
     log.write(f"As operações do arquivo operacoes.txt foram executadas com sucesso!")
@@ -324,7 +289,7 @@ def remover_da_led(arq: io.TextIOWrapper,offset:int):
         return False
     
     arq.seek(prox)
-    print(arq.read(3))
+    arq.read(3) # Pula tamanho e marcação
     prox = int.from_bytes(arq.read(4),signed=True)
     
     # CASO PATOLÓGICO: anter é a cabeça da LED. Não se pula os 3 bytes.
@@ -332,7 +297,19 @@ def remover_da_led(arq: io.TextIOWrapper,offset:int):
     arq.write(prox.to_bytes(4,signed=True))
     return True
 
-def inserir_filme(arq: io.TextIOWrapper, registro_str: str) -> int:
+def validar_id(arq:io.TextIOWrapper,id:int,indices:list[Indice]):
+    '''
+    Retorna se o ID existe na lista de indices ou não
+    '''
+    filme = busca_filme(arq,id,indices)
+    return filme != None and not filme.apagado
+
+def inserir_filme(arq: io.TextIOWrapper, registro_str: str,indices:list[Indice]) -> int:
+    '''
+    Insere um novo registro no arquivo pela estratégia de best-fit.
+    '''
+    if validar_id(arq,int(registro_str.split("|")[0]),indices): return -1,False
+
     registro = registro_str.encode('utf-8')
     tam = len(registro)
     tam_bytes = tam.to_bytes(2, 'big')
@@ -348,11 +325,8 @@ def inserir_filme(arq: io.TextIOWrapper, registro_str: str) -> int:
         remover_da_led(arq,offset)
         arq.seek(offset)
         tamanho_anterior = int.from_bytes(arq.read(2))
-        arq.seek(offset+2)
         arq.write(registro)
-        arq.write(b'\0'*(tamanho_anterior-tam))
-        print("REMOVIDO DA LED: ")
-        le_led(arq)
+        arq.write(b'\0'*(tamanho_anterior-tam)) # Preenche a sobra com 0
         return offset, False
 
 def filme_para_registro(filme:Filme):
@@ -361,6 +335,7 @@ def filme_para_registro(filme:Filme):
     formatada como um registro
     '''
     return f"{filme.id}|{filme.titulo}|{filme.diretor}|{filme.ano}|{filme.genero}|{filme.duracao}|{filme.elenco}"
+
 def main():
     args:list[str] = sys.argv
     assert len(args) >= 3, "Argumentos inválidos.\n Uso do programa: [nome-arquivo] [-e, -c, -p]"

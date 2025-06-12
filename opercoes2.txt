@@ -1,1 +1,3 @@
-b 126
+i 126|Corações de Ferro|David Ayer|2014|Ação, Drama, Guerra|134|Brad Pitt, Shia LaBeouf, Logan Lerman|
+r 126
+i 126|Corações de Ferro|David Ayer|2014|Ação, Drama, Guerra|134|Brad Pitt, Shia LaBeouf, Logan Lerman|
