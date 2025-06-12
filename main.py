@@ -90,21 +90,6 @@ def busca_filme(arq:io.TextIOWrapper,id:int,indices:list[Indice]) -> Filme:
         if indices[meio].chave < id: inicio = meio+1
         else: fim = meio-1
     return None
-    
-    
-    split = len(indices)//2 # Divide a lista ao meio
-    
-    # CASOS BASE ----------------------------------------------------------------
-    if(indices[split].chave == id): # Encontrou o filme, acessa e retorna
-        return acessa_filme(arq,indices[split].byte_offset)
-    elif(split == 0): # Acabou a lista, não retorna nada
-        return None
-    #----------------------------------------------------------------------------
-
-    # Define em qual dos lados da lista dividida a busca continuará:
-    novoIndices = indices[split:] if id > indices[split].chave else indices[:split] 
-
-    return busca_filme(arq,id,novoIndices) # CASO RECURSIVO
 
 def lista_indices(arq:io.TextIOWrapper) -> list[Indice]:
     '''
@@ -142,12 +127,11 @@ def lista_indices(arq:io.TextIOWrapper) -> list[Indice]:
         
 def apaga_filme(arq:io.TextIOWrapper,filme:Filme) -> None:
     '''
-    Apaga o registro do 'filme' do 'arq'
+    Apaga o registro do 'filme' do 'arq' e adiciona seu espaço livre a LED
     '''
-    
     arq.seek(filme.byte_offset)
     tamanho = int.from_bytes(arq.read(2))
-    arq.write(b'*')
+    arq.write(b'*') # Marcação
     adicionar_a_led(arq,filme.byte_offset,tamanho)
 
 def adicionar_a_led(arq:io.TextIOWrapper,offset:int,tamanho:int):
@@ -177,6 +161,9 @@ def adicionar_a_led(arq:io.TextIOWrapper,offset:int,tamanho:int):
     arq.write(endereco.to_bytes(4,signed=True))
 
 def encontrar_melhor_espaço(arq:io.TextIOWrapper,tam:int):
+    '''
+    Encontra o melhor espaço disponível na LED dado o 'tam' pela estratégia best-fit
+    '''
     arq.seek(0)
     endereco = int.from_bytes(arq.read(4),signed=True)
     while(endereco != -1):
@@ -187,7 +174,7 @@ def encontrar_melhor_espaço(arq:io.TextIOWrapper,tam:int):
         else:
             arq.read(1) # Pula a marcação
             endereco = int.from_bytes(arq.read(4),signed=True)
-    return None
+    return None # Nenhum espaço
     
 def imprime_led(arq:io.TextIOWrapper):
     '''
@@ -210,8 +197,6 @@ def imprime_led(arq:io.TextIOWrapper):
     log.write(f"Total: {espacos} espaços disponíveis.\n")
     log.write("A LED foi impressa com sucesso!")
     log.close()
-
-
 
 def compactar(arq:io.TextIOWrapper):
     '''
@@ -271,7 +256,9 @@ def executa_operacoes(arq:io.TextIOBase,arq_ops:str,indices:list[Indice]):
                 log.write(f"Inserção do registro de chave \"{novo_filme.split("|")[0]}\" ({len(novo_filme.encode())} bytes)\n")
                 local, eof = inserir_filme(arq,novo_filme,indices)
                 
-                if local == -1: # ID repetido
+                if local == -1: # Caracter inválido
+                    log.write("Erro: Caracter \'*\' não é permitido!\n\n")
+                elif local == -2: # ID repetido
                     log.write("Erro: ID já existe!\n\n")
                 else:
                     indices = lista_indices(arq)
@@ -282,7 +269,7 @@ def executa_operacoes(arq:io.TextIOBase,arq_ops:str,indices:list[Indice]):
                         log.write(f"Local: offset = {local} bytes ({hex(local)})\n\n")
                 
         operacao = ops.readline()
-    log.write(f"As operações do arquivo operacoes.txt foram executadas com sucesso!")
+    log.write(f"As operações do arquivo {arq_ops} foram executadas com sucesso!")
     log.close()
     ops.close()
 
@@ -320,7 +307,9 @@ def inserir_filme(arq: io.TextIOWrapper, registro_str: str,indices:list[Indice])
     '''
     Insere um novo registro no arquivo pela estratégia de best-fit.
     '''
-    if validar_id(arq,int(registro_str.split("|")[0]),indices): return -1,False
+    if "*" in registro_str: return -1, False # Caracter inválido no registro
+    if validar_id(arq,int(registro_str.split("|")[0]),indices): return -2,False
+   
 
     registro = registro_str.encode('utf-8')
     tam = len(registro)
